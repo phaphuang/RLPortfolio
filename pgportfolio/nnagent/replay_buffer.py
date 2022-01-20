@@ -51,6 +51,8 @@ class PGPBuffer(nn.Module):
         coin_num = coin_features.shape[1]
         period_num = coin_features.shape[2]
 
+        print("Coin feature shape: ", coin_features.shape)
+
         coin_features = t.tensor(coin_features, device=device)
 
         # portfolio vector memory
@@ -65,7 +67,7 @@ class PGPBuffer(nn.Module):
         self._train_idx, self._test_idx, self._val_idx = \
             self._divide_data(period_num, window_size, test_portion,
                               validation_portion, portion_reversed)
-
+        
         # the count of appended experiences
         self._new_exp_count = 0
 

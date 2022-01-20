@@ -19,7 +19,7 @@ class CoinDataManager:
     # each tuple is a row.
     def __init__(self, coin_number, end, volume_average_days=1,
                  volume_forward=0, online=True, db_directory=None):
-        self._storage_period = FIVE_MINUTES  # keep this as 300
+        self._storage_period = DAY  # keep this as 86400
         self._coin_number = coin_number
         self._online = online
         #if self._online:
@@ -64,12 +64,13 @@ class CoinDataManager:
                 % (len(coins), self._coin_number))
 
         logging.info("Feature type list is %s" % str(features))
-        #self._check_period(period)
+        self._check_period(period)
 
         time_num = (end - start) // period + 1
+        print("Time number: ", start, end, time_num)
         data = np.full([len(features), len(coins), time_num],
                        np.NAN, dtype=np.float32)
-
+        print("Data Before: ", data.shape)
         connection = sqlite3.connect(self._db_dir)
         try:
             for coin_num, coin in enumerate(coins):
@@ -80,10 +81,10 @@ class CoinDataManager:
                     # NOTE: transform the start date to end date
                     if feature == "close":
                         sql = (
-                            'SELECT date+{period} AS date_norm, close '
+                            'SELECT date+86400 AS date_norm, close '
                             'FROM History WHERE '
                             'date_norm>={start} and date_norm<={end} '
-                            'and date_norm%{period}=0 and coin="{coin}" '
+                            'and coin="{coin}" '
                             'ORDER BY date_norm'
                             .format(start=start, end=end,
                                     period=period, coin=coin)
@@ -92,7 +93,7 @@ class CoinDataManager:
                         sql = (
                             'SELECT date+{period} AS date_norm, open '
                             'FROM History WHERE '
-                            'date_norm>={start} and date_norm<={end}'
+                            'date_norm>={start} and date_norm<={end} '
                             'and date_norm%{period}=0 and coin="{coin}" '
                             'ORDER BY date_norm'
                             .format(start=start, end=end,
@@ -141,22 +142,29 @@ class CoinDataManager:
                     serial_data = pd.read_sql_query(sql, con=connection,
                                                     parse_dates=["date_norm"],
                                                     index_col="date_norm")
-                   # print("Hello This is serial data: ", serial_data)
                     time_index = ((serial_data.index.astype(np.int64) // 10**9
                                    - start) / period).astype(np.int64)
+                    #print("Feature: ", feature_num, coin_num, time_index)
+                    #print("Serial_data length: ", len(serial_data.values.squeeze()))
+                    #print("Data before: ", data[feature_num, coin_num, time_index])
                     data[feature_num, coin_num, time_index] = \
                         serial_data.values.squeeze()
         finally:
             connection.commit()
             connection.close()
-
+        
+        #print("Data after: ",np.unique(data[~np.isnan(data)]))
+        #print("Data after: ",np.unique(data[np.isnan(data)]))
+        #print("Before fill: ", data)
         # use closing price to fill other features, since it is most stable
         data = self._fill_nan_and_invalid(data, bound=(0, 1),
-                                          forward=True, axis=0)
+                                          forward=False, axis=0)
+        #print("After fill axis=0: ", data)
         # backward fill along the period axis
         data = self._fill_nan_and_invalid(data, bound=(0, 1),
                                           forward=False, axis=2)
-        #assert not np.any(np.isnan(data)), "Filling nan failed, unknown error."
+        #print("After fill axis=2: ", data)
+        assert not np.any(np.isnan(data)), "Filling nan failed, unknown error."
 
         # for manual checking
         # for f in range(data.shape[0]):
@@ -230,6 +238,12 @@ class CoinDataManager:
         elif period == FOUR_HOUR:
             return
         elif period == DAY:
+            return
+        elif period == FIVE_DAYS:
+            return
+        elif period == MONTH:
+            return
+        elif period == QUATER:
             return
         else:
             raise ValueError(
