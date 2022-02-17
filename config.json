@@ -16,15 +16,16 @@
   },
 
   "input":{
-    "window_size":11,
+    "window_size":21,
     "coin_number":67,
-    "global_period":432000,
+    "global_period":86400,
     "feature_number":3,
-    "test_portion":0.1,
+    "test_portion":0.08,
     "validation_portion": 0,
     "start_date":"2013/01/04",
     "end_date":"2021/12/31",
-    "volume_average_days":30
+    "volume_average_days":30,
+    "tier":1
   },
 
   "trading":{

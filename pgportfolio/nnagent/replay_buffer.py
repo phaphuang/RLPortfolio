@@ -55,6 +55,8 @@ class PGPBuffer(nn.Module):
 
         coin_features = t.tensor(coin_features, device=device)
 
+        print(f"Total feature shape: {coin_features.shape}")
+
         # portfolio vector memory
         pvm = t.full([period_num, coin_num], 1.0 / coin_num, device=device)
         self.register_buffer("_coin_features", coin_features, True)
@@ -67,6 +69,8 @@ class PGPBuffer(nn.Module):
         self._train_idx, self._test_idx, self._val_idx = \
             self._divide_data(period_num, window_size, test_portion,
                               validation_portion, portion_reversed)
+        
+        #print(f"Training idx: {self._train_idx}, Testing idx: {self._test_idx}, Validation idx: {self._val_idx}")
         
         # the count of appended experiences
         self._new_exp_count = 0
@@ -166,6 +170,14 @@ class PGPBuffer(nn.Module):
         batch_start = self._sample_geometric(
             start_idx, end_idx, self._sample_bias
         )
+        
+        #print(f"Batch Start: {batch_start} with Batch Size: {self._batch_size}")
+        # if batch_start + self._batch_size < end_idx:
+        #     batch_end = batch_start + self._batch_size
+        # else:
+        #     batch_end = end_idx
+        # batch_idx = list(range(batch_start, batch_end))
+        
         batch_idx = list(range(batch_start, batch_start + self._batch_size))
         batch = self._pack_samples(batch_idx)
         return batch
@@ -177,6 +189,8 @@ class PGPBuffer(nn.Module):
         def setw(w):
             assert t.is_tensor(w)
             self._pvm[index, :] = w.to(self._pvm.device).detach()
+        
+        #print(f"Input index: {index}")
 
         batch = t.stack([
             self._coin_features[:, :, idx:idx + self._window_size + 1]

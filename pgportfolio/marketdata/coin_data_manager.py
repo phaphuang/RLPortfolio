@@ -17,11 +17,12 @@ class CoinDataManager:
     # if offline ,the coin_list could be None
     # NOTE: return of the sqlite results is a list of tuples,
     # each tuple is a row.
-    def __init__(self, coin_number, end, volume_average_days=1,
+    def __init__(self, coin_number, end, tier=1, volume_average_days=1,
                  volume_forward=0, online=True, db_directory=None):
         self._storage_period = DAY  # keep this as 86400
         self._coin_number = coin_number
         self._online = online
+        self._tier = tier
         #if self._online:
         #    self._coin_list = CoinList(end, volume_average_days, volume_forward)
         self._volume_forward = volume_forward
@@ -197,10 +198,10 @@ class CoinDataManager:
                     'SELECT coin,SUM(volume) AS total_volume '
                     'FROM History WHERE '
                     'date>=? and date<=? GROUP BY coin '
-                    'ORDER BY total_volume DESC LIMIT ?;',
-                    (int(start), int(end), self._coin_number)
+                    'ORDER BY total_volume DESC;',
+                    (int(start), int(end))
                 )
-                coins_tuples = cursor.fetchall()
+                coins_tuples = cursor.fetchall()[(self._tier-1)*self._coin_number:(self._tier)*self._coin_number]
 
                 if len(coins_tuples) != self._coin_number:
                     logging.error("The sqlite error happened.")
@@ -343,8 +344,8 @@ class CoinDataManager:
             if c["date"] > 0:
                     cursor.execute(
                     'INSERT INTO History VALUES (?,?,?,?,?,?,?)',
-                    (c['date'], coin, c['high'], c['low'], c['open'],
-                        c['close'], c['volume']))
+                    (c['date'], coin, 1.0 / c['high'], 1.0 / c['low'], 1.0 / c['open'],
+                        1.0 / c['close'], c['volume']))
 
 
 def coin_data_manager_init_helper(config, online=True,
@@ -355,6 +356,7 @@ def coin_data_manager_init_helper(config, online=True,
     cdm = CoinDataManager(
         coin_number=input_config["coin_number"],
         end=int(end),
+        tier=input_config["tier"]
         volume_average_days=input_config["volume_average_days"],
         volume_forward=get_volume_forward(
             int(end) - int(start),
