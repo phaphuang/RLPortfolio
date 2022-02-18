@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import matplotlib.ticker
 from matplotlib import rc
 
 from pgportfolio.utils.indicator import \
@@ -98,14 +99,17 @@ def plot_backtest(config, algos, labels=None,
 
     plt.ylabel("portfolio value $p_t/p_0$", fontsize=12)
     plt.xlabel("time", fontsize=12)
-    xfmt = mdates.DateFormatter("%m-%d %H:%M")
+    #xfmt = mdates.DateFormatter("%m-%d %H:%M")
+    xfmt = mdates.DateFormatter("%Y-%m-%d")
     ax.xaxis.set_major_locator(weeks)
     ax.xaxis.set_minor_locator(days)
     datemin = dates[0]
     datemax = dates[-1]
-    ax.set_xlim(datemin, datemax)
+    #ax.set_xlim(datemin, datemax)
 
     ax.xaxis.set_major_formatter(xfmt)
+    ax.yaxis.set_major_formatter(matplotlib.ticker.ScalarFormatter())
+    ax.yaxis.set_minor_formatter(matplotlib.ticker.ScalarFormatter())
     plt.grid(True)
     plt.tight_layout()
     ax.legend(loc="upper left", prop={"size": 10})

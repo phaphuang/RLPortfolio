@@ -353,6 +353,17 @@ def coin_data_manager_init_helper(config, online=True,
     input_config = config["input"]
     start = parse_time(input_config["start_date"])
     end = parse_time(input_config["end_date"])
+    
+    start_date_test = input_config["start_date_test"]
+    if start_date_test:
+        start_date_test = parse_time(start_date_test)
+        period = input_config["global_period"],
+        start_pe = int(start - (start % period))
+        start_test_pe = int(start_date_test - (start_date_test % period))
+        date_test_idx = (start_test_pe - start_pe) // period + 1
+    else:
+        date_test_idx = ""
+
     cdm = CoinDataManager(
         coin_number=input_config["coin_number"],
         end=int(end),
@@ -377,4 +388,4 @@ def coin_data_manager_init_helper(config, online=True,
             period=input_config["global_period"],
             features=get_feature_list(input_config["feature_number"])
         )
-        return cdm, features
+        return cdm, features, date_test_idx

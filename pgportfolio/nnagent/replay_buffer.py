@@ -34,7 +34,8 @@ class PGPBuffer(nn.Module):
                  validation_portion=0.1,
                  sample_bias=0.1,
                  portion_reversed=False,
-                 device="cpu"):
+                 device="cpu",
+                 date_test_idx=""):
         """
         Args:
             coin_features: Coin features in shape [feature, coin, time].
@@ -68,7 +69,7 @@ class PGPBuffer(nn.Module):
         self._portion_reversed = portion_reversed
         self._train_idx, self._test_idx, self._val_idx = \
             self._divide_data(period_num, window_size, test_portion,
-                              validation_portion, portion_reversed)
+                              validation_portion, portion_reversed, date_test_idx)
         
         #print(f"Training idx: {self._train_idx}, Testing idx: {self._test_idx}, Validation idx: {self._val_idx}")
         
@@ -221,7 +222,8 @@ class PGPBuffer(nn.Module):
                      window_size,
                      test_portion,
                      val_portion,
-                     portion_reversed):
+                     portion_reversed,
+                     date_test_idx):
         """
         Divide training data into three portions, train, test and validation.
 
@@ -237,19 +239,27 @@ class PGPBuffer(nn.Module):
         """
         train_portion = 1 - test_portion - val_portion
         indices = np.arange(period_num)
+        
+        if date_test_idx:
+            train_idx = indices[:date_test_idx]
+            test_idx = indices[date_test_idx:]
+            val_idx = []
+            
+            print(f"This is modify indices start idx: {indices[0]} test idx: {date_test_idx} end idx: {indices[-1]} !!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
-        if portion_reversed:
-            split_point = np.array(
-                [val_portion, val_portion + test_portion]
-            )
-            split_idx = (split_point * period_num).astype(int)
-            val_idx, test_idx, train_idx = np.split(indices, split_idx)
         else:
-            split_point = np.array(
-                [train_portion, train_portion + test_portion]
-            )
-            split_idx = (split_point * period_num).astype(int)
-            train_idx, test_idx, val_idx = np.split(indices, split_idx)
+            if portion_reversed:
+                split_point = np.array(
+                    [val_portion, val_portion + test_portion]
+                )
+                split_idx = (split_point * period_num).astype(int)
+                val_idx, test_idx, train_idx = np.split(indices, split_idx)
+            else:
+                split_point = np.array(
+                    [train_portion, train_portion + test_portion]
+                )
+                split_idx = (split_point * period_num).astype(int)
+                train_idx, test_idx, val_idx = np.split(indices, split_idx)
 
         # truncate records in the last time window, otherwise we may
         # sample insufficient samples when reaching the last window.
@@ -263,7 +273,7 @@ class PGPBuffer(nn.Module):
 def buffer_init_helper(config, device, online=True, db_directory=None):
     input_config = config["input"]
     train_config = config["training"]
-    cdm, features = coin_data_manager_init_helper(
+    cdm, features, date_test_idx = coin_data_manager_init_helper(
         config, online=online, download=True, db_directory=db_directory
     )
     buffer = PGPBuffer(
@@ -275,5 +285,6 @@ def buffer_init_helper(config, device, online=True, db_directory=None):
         sample_bias=train_config["buffer_biased"],
         portion_reversed=input_config["portion_reversed"],
         device=device,
+        date_test_idx=date_test_idx
     )
     return cdm, buffer
