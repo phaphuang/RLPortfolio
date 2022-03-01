@@ -158,11 +158,11 @@ class CoinDataManager:
         #print("Data after: ",np.unique(data[np.isnan(data)]))
         #print("Before fill: ", data)
         # use closing price to fill other features, since it is most stable
-        data = self._fill_nan_and_invalid(data, bound=(0, 1),
+        data = self._fill_nan_and_invalid(data, bound=(0, 10000),
                                           forward=False, axis=0)
         #print("After fill axis=0: ", data)
         # backward fill along the period axis
-        data = self._fill_nan_and_invalid(data, bound=(0, 1),
+        data = self._fill_nan_and_invalid(data, bound=(0, 10000),
                                           forward=False, axis=2)
         #print("After fill axis=2: ", data)
         assert not np.any(np.isnan(data)), "Filling nan failed, unknown error."
@@ -364,20 +364,31 @@ def coin_data_manager_init_helper(config, online=True,
     else:
         date_test_idx = ""
 
-    cdm = CoinDataManager(
-        coin_number=input_config["coin_number"],
-        end=int(end),
-        tier=input_config["tier"]
-        volume_average_days=input_config["volume_average_days"],
-        volume_forward=get_volume_forward(
-            int(end) - int(start),
-            (input_config["validation_portion"] +
-             input_config["test_portion"]),
-            input_config["portion_reversed"]
-        ),
-        online=online,
-        db_directory=db_directory
-    )
+    if date_test_idx:
+        cdm = CoinDataManager(
+            coin_number=input_config["coin_number"],
+            end=int(end),
+            tier=input_config["tier"],
+            volume_average_days=input_config["volume_average_days"],
+            volume_forward=date_test_idx,
+            online=online,
+            db_directory=db_directory
+        )
+    else:
+        cdm = CoinDataManager(
+            coin_number=input_config["coin_number"],
+            end=int(end),
+            tier=input_config["tier"],
+            volume_average_days=input_config["volume_average_days"],
+            volume_forward=get_volume_forward(
+                int(end) - int(start),
+                (input_config["validation_portion"] +
+                input_config["test_portion"]),
+                input_config["portion_reversed"]
+            ),
+            online=online,
+            db_directory=db_directory
+        )
     if not download:
         return cdm
     else:
